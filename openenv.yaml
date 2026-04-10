@@ -7,6 +7,8 @@ entrypoint: app.py
 
 tasks:
   - id: jcoe-easy-v0
+    difficulty: easy
+    count: 5
     module: server.jaoe_environment:JaoeEnvironment
     env:
       JAOE_TASK: jcoe-easy-v0
@@ -15,6 +17,8 @@ tasks:
       module: graders.easy:grade
 
   - id: jcoe-medium-v0
+    difficulty: medium
+    count: 5
     module: server.jaoe_environment:JaoeEnvironment
     env:
       JAOE_TASK: jcoe-medium-v0
@@ -23,6 +27,8 @@ tasks:
       module: graders.medium:grade
 
   - id: jcoe-hard-v0
+    difficulty: hard
+    count: 5
     module: server.jaoe_environment:JaoeEnvironment
     env:
       JAOE_TASK: jcoe-hard-v0
