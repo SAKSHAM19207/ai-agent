@@ -3,12 +3,11 @@ from collections.abc import Iterable
 from typing import Any
 
 
-# --- inlined from utils.py ---
 def clamp(score: float) -> float:
     return max(0.05, min(0.95, score))
 
 
-def normalize_trajectory(trajectory: Any) -> list[dict[str, Any]]:
+def normalize_trajectory(trajectory: Any) -> list:
     if trajectory is None:
         return []
     if isinstance(trajectory, dict):
@@ -20,35 +19,35 @@ def normalize_trajectory(trajectory: Any) -> list[dict[str, Any]]:
         else:
             trajectory = [trajectory]
     elif hasattr(trajectory, "trajectory"):
-        trajectory = getattr(trajectory, "trajectory")
+        trajectory = list(getattr(trajectory, "trajectory"))
     elif hasattr(trajectory, "steps"):
-        trajectory = getattr(trajectory, "steps")
+        trajectory = list(getattr(trajectory, "steps"))
     elif not isinstance(trajectory, list):
         if isinstance(trajectory, Iterable) and not isinstance(trajectory, (str, bytes)):
             trajectory = list(trajectory)
         else:
             trajectory = [trajectory]
-    normalized: list[dict[str, Any]] = []
+    normalized = []
     for step in trajectory:
         if isinstance(step, dict):
             normalized.append(step)
-            continue
-        normalized.append({
-            "action": getattr(step, "action", getattr(step, "action_type", None)),
-            "match_ratio": getattr(step, "match_ratio", None),
-            "resume_score": getattr(step, "resume_score", None),
-        })
+        else:
+            normalized.append({
+                "action": getattr(step, "action", getattr(step, "action_type", None)),
+                "match_ratio": getattr(step, "match_ratio", None),
+                "resume_score": getattr(step, "resume_score", None),
+            })
     return normalized
 
 
-def get_action(step: dict[str, Any]) -> str:
+def get_action(step: dict) -> str:
     action = step.get("action") or step.get("action_type")
     if isinstance(action, dict):
         action = action.get("action_type")
     return str(action or "").upper()
 
 
-def get_match_ratio(step: dict[str, Any]) -> float | None:
+def get_match_ratio(step: dict):
     for key in ("match_ratio", "match", "score"):
         value = step.get(key)
         if isinstance(value, (int, float)):
@@ -64,13 +63,12 @@ def get_match_ratio(step: dict[str, Any]) -> float | None:
     return len(set(user_skills).intersection(job_skills)) / max(len(job_skills), 1)
 
 
-# --- grader ---
-def grade(trajectory: Any) -> float:
+def grade(trajectory: Any, **kwargs) -> float:
     steps = normalize_trajectory(trajectory)
     if not steps:
         return 0.05
-    successes = 0.0
-    for step in steps:
-        if get_action(step) == "APPLY" and (get_match_ratio(step) or 0.0) >= 0.7:
-            successes += 1.0
+    successes = sum(
+        1.0 for s in steps
+        if get_action(s) == "APPLY" and (get_match_ratio(s) or 0.0) >= 0.7
+    )
     return clamp(0.05 + 0.90 * (successes / max(len(steps), 1)))
