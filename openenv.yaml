@@ -1,35 +1,20 @@
 spec_version: 1
 name: openenv-jaoe
 description: AI job application environment with three graded task variants.
-type: space
-runtime: fastapi
-entrypoint: app.py
 app: server.app:app
 
 tasks:
   - id: jcoe-easy-v0
-    name: "Easy: Clear Matches"
-    description: "Apply to clear high-match jobs with minimal detours."
+    description: Apply to clear high-match jobs with minimal detours.
     difficulty: easy
-    module: "server.jaoe_environment:JaoeEnvironment"
-    env:
-      JAOE_TASK: "jcoe-easy-v0"
     grader: graders.easy:EasyGrader
 
   - id: jcoe-medium-v0
-    name: "Medium: Optimization Required"
-    description: "Optimize before applying to partial-match roles."
+    description: Optimize before applying to partial-match roles.
     difficulty: medium
-    module: "server.jaoe_environment:JaoeEnvironment"
-    env:
-      JAOE_TASK: "jcoe-medium-v0"
     grader: graders.medium:MediumGrader
 
   - id: jcoe-hard-v0
-    name: "Hard: Selective Filtering"
-    description: "Skip weak fits and apply only when the match is strong."
+    description: Skip weak fits and apply only when the match is strong.
     difficulty: hard
-    module: "server.jaoe_environment:JaoeEnvironment"
-    env:
-      JAOE_TASK: "jcoe-hard-v0"
     grader: graders.hard:HardGrader
