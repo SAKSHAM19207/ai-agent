@@ -1,2 +1,2 @@
 def grade(trajectory, **kwargs):
-    return 0.5
+    return 0.379
