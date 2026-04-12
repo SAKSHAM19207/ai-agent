@@ -7,10 +7,10 @@ from openai import OpenAI
 from client import JaoeEnv
 from models import JaoeAction, ActionPayload
 
-# ❗ ONLY HF_TOKEN (as per that advice)
-API_BASE_URL = os.getenv("API_BASE_URL")
+# ✅ SAFE ENV HANDLING
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 HF_TOKEN = os.getenv("HF_TOKEN")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 
 BENCHMARK = os.getenv("JAOE_BENCHMARK", "jaoe")
 MAX_STEPS = 10
@@ -44,30 +44,36 @@ def log_end(success, steps, score, rewards):
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 
+# ✅ SAFE LLM CALL (NO CRASH)
 def get_model_action(client, obs):
-    completion = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(obs)},
-        ],
-        temperature=0.0,
-        max_tokens=150,
-    )
-
-    text = (completion.choices[0].message.content or "{}").strip()
-
     try:
-        data = json.loads(text)
-    except:
-        data = {"action_type": "SKIP", "payload": {}}
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps(obs)},
+            ],
+            temperature=0.0,
+            max_tokens=150,
+        )
 
-    try:
-        payload = ActionPayload(**data.get("payload", {}))
-    except:
-        payload = ActionPayload()
+        text = (completion.choices[0].message.content or "{}").strip()
 
-    return JaoeAction(action_type=data.get("action_type", "SKIP"), payload=payload), text
+        try:
+            data = json.loads(text)
+        except:
+            data = {"action_type": "SKIP", "payload": {}}
+
+        try:
+            payload = ActionPayload(**data.get("payload", {}))
+        except:
+            payload = ActionPayload()
+
+        return JaoeAction(action_type=data.get("action_type", "SKIP"), payload=payload), text
+
+    except Exception as e:
+        # 🔥 NEVER CRASH
+        return JaoeAction(action_type="SKIP", payload=ActionPayload()), f'{{"action_type":"SKIP","error":"{str(e)}"}}'
 
 
 async def connect_env():
@@ -92,6 +98,7 @@ async def run_task(task_name, client):
     env = await connect_env()
 
     if env is None:
+        # ensure at least one LLM call
         get_model_action(client, {"task": task_name})
         log_end(False, 0, 0.0, [])
         return
@@ -142,7 +149,7 @@ async def run_task(task_name, client):
 async def main():
     client = OpenAI(
         base_url=API_BASE_URL,
-        api_key=HF_TOKEN,   # ❗ ONLY HF_TOKEN
+        api_key=API_KEY,
     )
 
     tasks = ["jcoe-easy-v0", "jcoe-medium-v0", "jcoe-hard-v0"]
