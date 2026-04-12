@@ -8,9 +8,10 @@ from openai import OpenAI
 from client import JaoeEnv
 from models import JaoeAction, ActionPayload
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+# ✅ MUST use injected variables (NO fallback)
+API_BASE_URL = os.environ["API_BASE_URL"]
+API_KEY = os.environ["API_KEY"]
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN")
 
 BENCHMARK = os.getenv("JAOE_BENCHMARK", "jaoe")
 MAX_STEPS = 10
@@ -76,7 +77,7 @@ async def run_task(task_name: str, client: OpenAI):
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        # ✅ Correct: pass task in constructor, NOT reset
+        # ✅ Correct task binding
         env = JaoeEnv(base_url="http://localhost:8000", task=task_name)
 
         result = await env.reset()
@@ -117,7 +118,7 @@ async def run_task(task_name: str, client: OpenAI):
         success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception:
-        # ✅ Prevent crash from killing script
+        # ✅ Prevent crash
         success = False
         steps_taken = 0
         score = 0.0
@@ -140,9 +141,10 @@ async def run_task(task_name: str, client: OpenAI):
 async def main() -> None:
     client = OpenAI(
         base_url=API_BASE_URL,
-        api_key=HF_TOKEN or "dummy-key"
+        api_key=API_KEY
     )
 
+    # ✅ MUST run all 3 tasks
     tasks = [
         "jcoe-easy-v0",
         "jcoe-medium-v0",
@@ -157,5 +159,5 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except Exception:
-        # ✅ Ensures exit code is 0
+        # ✅ ensures exit code 0
         pass
