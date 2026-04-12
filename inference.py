@@ -7,9 +7,9 @@ from openai import OpenAI
 from client import JaoeEnv
 from models import JaoeAction, ActionPayload
 
-# ✅ USE PLATFORM VARIABLES ONLY
+# ❗ ONLY HF_TOKEN (as per that advice)
 API_BASE_URL = os.getenv("API_BASE_URL")
-API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
+HF_TOKEN = os.getenv("HF_TOKEN")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 
 BENCHMARK = os.getenv("JAOE_BENCHMARK", "jaoe")
@@ -92,7 +92,6 @@ async def run_task(task_name, client):
     env = await connect_env()
 
     if env is None:
-        # still call LLM once so proxy registers
         get_model_action(client, {"task": task_name})
         log_end(False, 0, 0.0, [])
         return
@@ -143,7 +142,7 @@ async def run_task(task_name, client):
 async def main():
     client = OpenAI(
         base_url=API_BASE_URL,
-        api_key=API_KEY,
+        api_key=HF_TOKEN,   # ❗ ONLY HF_TOKEN
     )
 
     tasks = ["jcoe-easy-v0", "jcoe-medium-v0", "jcoe-hard-v0"]
