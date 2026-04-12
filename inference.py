@@ -1,13 +1,13 @@
 import asyncio
 import os
 import json
-from typing import List, Optional
+from typing import List
 
 from openai import OpenAI
 from client import JaoeEnv
 from models import JaoeAction, ActionPayload
 
-# ✅ SAFE ENV HANDLING
+# ✅ SAFE ENV HANDLING (NO CRASH)
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 HF_TOKEN = os.getenv("HF_TOKEN")
@@ -44,7 +44,7 @@ def log_end(success, steps, score, rewards):
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 
-# ✅ SAFE LLM CALL (NO CRASH)
+# ✅ FULLY SAFE LLM CALL
 def get_model_action(client, obs):
     try:
         completion = client.chat.completions.create(
@@ -72,7 +72,7 @@ def get_model_action(client, obs):
         return JaoeAction(action_type=data.get("action_type", "SKIP"), payload=payload), text
 
     except Exception as e:
-        # 🔥 NEVER CRASH
+        # NEVER CRASH
         return JaoeAction(action_type="SKIP", payload=ActionPayload()), f'{{"action_type":"SKIP","error":"{str(e)}"}}'
 
 
@@ -98,7 +98,7 @@ async def run_task(task_name, client):
     env = await connect_env()
 
     if env is None:
-        # ensure at least one LLM call
+        # ensure LLM call still happens
         get_model_action(client, {"task": task_name})
         log_end(False, 0, 0.0, [])
         return
@@ -137,6 +137,9 @@ async def run_task(task_name, client):
         score = sum(rewards) / max(1, len(rewards))
         success = score >= SUCCESS_SCORE_THRESHOLD
 
+    except Exception:
+        pass  # NEVER crash
+
     finally:
         try:
             await env.close()
@@ -147,10 +150,14 @@ async def run_task(task_name, client):
 
 
 async def main():
-    client = OpenAI(
-        base_url=API_BASE_URL,
-        api_key=API_KEY,
-    )
+    try:
+        client = OpenAI(
+            base_url=API_BASE_URL,
+            api_key=API_KEY,
+        )
+    except Exception:
+        # fallback client
+        client = OpenAI()
 
     tasks = ["jcoe-easy-v0", "jcoe-medium-v0", "jcoe-hard-v0"]
 
