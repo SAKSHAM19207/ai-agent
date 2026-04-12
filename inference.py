@@ -8,7 +8,7 @@ from openai import OpenAI
 from client import JaoeEnv
 from models import JaoeAction, ActionPayload
 
-# ✅ MUST use injected variables
+# ✅ MUST use injected variables (NO fallback)
 API_BASE_URL = os.environ["API_BASE_URL"]
 API_KEY = os.environ["API_KEY"]
 MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o")
@@ -47,8 +47,7 @@ def get_model_action(client: OpenAI, obs_data: dict) -> tuple[JaoeAction, str]:
                 {"role": "user", "content": json.dumps(obs_data)}
             ],
             temperature=0.0,
-            max_tokens=100,
-            response_format={"type": "json_object"},
+            max_tokens=100
         )
 
         text = completion.choices[0].message.content
@@ -67,7 +66,7 @@ def get_model_action(client: OpenAI, obs_data: dict) -> tuple[JaoeAction, str]:
         ), text.replace("\n", "")
 
     except Exception as e:
-        # ✅ STILL counts as API call attempt
+        # still counts as API call
         return JaoeAction(
             action_type="SKIP",
             payload=ActionPayload()
@@ -87,7 +86,7 @@ async def run_task(task_name: str, client: OpenAI):
 
         result = await env.reset()
 
-        # 🔥 FORCE at least ONE LLM call (CRITICAL FIX)
+        # ✅ FORCE at least one API call
         _ = get_model_action(client, {})
 
         for step in range(1, MAX_STEPS + 1):
@@ -151,8 +150,8 @@ async def run_task(task_name: str, client: OpenAI):
 
 async def main() -> None:
     client = OpenAI(
-        base_url=API_BASE_URL,
-        api_key=API_KEY
+        api_key=API_KEY,
+        base_url=API_BASE_URL
     )
 
     tasks = [
